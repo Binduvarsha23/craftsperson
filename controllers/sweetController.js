@@ -1,49 +1,29 @@
-import Sweet from "../models/Sweet.js";
+// routes/sweetRoutes.js
+import express from "express";
+import {
+  getSweets,
+  searchSweets,
+  addSweet,
+  updateSweet,
+  deleteSweet,
+  purchaseSweet,
+  restockSweet,
+} from "../controllers/sweetController.js";
+import { protect, admin } from "../middleware/auth.js";
 
-export const addSweet = async (req, res) => {
-  const sweet = await Sweet.create(req.body);
-  res.status(201).json(sweet);
-};
+const router = express.Router();
 
-export const getSweets = async (_, res) => {
-  const sweets = await Sweet.find();
-  res.json(sweets);
-};
+// 🌍 PUBLIC
+router.get("/", getSweets);          // get all sweets
+router.get("/search", searchSweets); // search sweets
 
-export const searchSweets = async (req, res) => {
-  const { name, category, minPrice, maxPrice } = req.query;
-  const query = {};
-  if (name) query.name = new RegExp(name, "i");
-  if (category) query.category = category;
-  if (minPrice || maxPrice)
-    query.price = { ...(minPrice && { $gte: minPrice }), ...(maxPrice && { $lte: maxPrice }) };
+// 👤 USER
+router.post("/:id/purchase", protect, purchaseSweet);
 
-  const sweets = await Sweet.find(query);
-  res.json(sweets);
-};
+// 👑 ADMIN
+router.post("/", protect, admin, addSweet);
+router.put("/:id", protect, admin, updateSweet);
+router.delete("/:id", protect, admin, deleteSweet);
+router.post("/:id/restock", protect, admin, restockSweet);
 
-export const updateSweet = async (req, res) => {
-  const sweet = await Sweet.findByIdAndUpdate(req.params.id, req.body, { new: true });
-  res.json(sweet);
-};
-
-export const deleteSweet = async (req, res) => {
-  await Sweet.findByIdAndDelete(req.params.id);
-  res.json({ message: "Sweet deleted" });
-};
-
-export const purchaseSweet = async (req, res) => {
-  const sweet = await Sweet.findById(req.params.id);
-  if (!sweet || sweet.quantity === 0) return res.status(400).json({ message: "Out of stock" });
-  sweet.quantity -= 1;
-  await sweet.save();
-  res.json(sweet);
-};
-
-export const restockSweet = async (req, res) => {
-  const sweet = await Sweet.findById(req.params.id);
-  if (!sweet) return res.status(404).json({ message: "Not found" });
-  sweet.quantity += req.body.amount || 1;
-  await sweet.save();
-  res.json(sweet);
-};
+export default router;
