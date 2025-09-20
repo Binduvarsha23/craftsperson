@@ -32,9 +32,11 @@ export const login = async (req, res) => {
     res.json({
       _id: user._id,
       username: user.username,
+      role: user.role,           // <-- Add this line
       token: generateToken(user._id)
     });
   } else {
     res.status(401).json({ message: "Invalid credentials" });
   }
 };
+
